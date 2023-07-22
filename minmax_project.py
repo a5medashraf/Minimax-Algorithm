@@ -1,3 +1,4 @@
+import time
 import numpy as np
 import random
 import pygame
@@ -178,6 +179,44 @@ def minimax(board, depth, maximizing_player):
 
 #------------------------------------------------------------------------------
 # -----------------------------------------------------------------------------
+
+def undo_move(board, row, column):
+    if board[row][column] != 0:
+        board[row][column] = 0
+
+def negamax(board, depth):
+    valid_locations = get_valid_locations(board)
+    terminal_node = is_terminal_node(board)
+
+    if depth == 0 or terminal_node:
+        if terminal_node:
+            if winning_move(board, 2):
+                return (None, -100000000000000)
+            elif winning_move(board, 1):
+                return (None, 10000000000000)
+            else:  # Game is over, no more valid moves
+                return (None, 0)
+        else:  # Depth is zero
+            return (None, score_position(board, 2))
+
+    score = -math.inf
+    best_move = random.choice(valid_locations)
+
+    for col in valid_locations:
+        row = get_next_open_row(board, col)
+        temp_board = board.copy()
+        drop_piece(temp_board, row, col, 2)
+        new_score = max(score, -negamax(temp_board, depth - 1)[1])   # Unpack the score from returned tuple
+        if new_score > score:
+            score = new_score
+            best_move = col
+        undo_move(temp_board, row, col)
+
+    return best_move, score  # Return a tuple with the best column and the score
+
+
+#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 def minimax_ap(board, depth, alpha, beta, maximizing_player):
     valid_locations = get_valid_locations(board)
     terminal_node = is_terminal_node(board)
@@ -305,6 +344,7 @@ turn = random.randint(PLAYER, AI)
 # player vs minmax alpha pruning
 
 def playeralphapruning(Diff):
+    
     turn = random.randint(PLAYER, AI)
     game_over=False
     if(Diff=="Easy"):
@@ -313,7 +353,7 @@ def playeralphapruning(Diff):
         Difficulty=3
     else:
         Difficulty=5
-            
+    move_start_time = time.time()       
     while not game_over:
     
         for event in pygame.event.get():
@@ -351,13 +391,8 @@ def playeralphapruning(Diff):
                         draw_board(board)
     
         if turn == AI and not game_over:
-
-            # move_start_time = time.time()
-    
+        
             col, minimax_score = minimax_ap(board, Difficulty, -math.inf, math.inf, True)
-    
-            # elapsed_time = time.time() - move_start_time
-
     
             if is_valid_location(board, col):
                 # pygame.time.wait(500)
@@ -376,6 +411,7 @@ def playeralphapruning(Diff):
                 turn = turn % 2
     
         if game_over:
+           
             pygame.time.wait(3000)
 #----------------------------------------------------------------------------------------------------------
 # player vs minmax
@@ -428,6 +464,80 @@ def playerminmax(Diff):
 
             # move_start_time=time.time()
             col, minimax_score = minimax(board, Difficulty, True)
+            # elapsed_time = time.time() - move_start_time
+
+        
+            if is_valid_location(board, col):
+                # pygame.time.wait(500)
+                row = get_next_open_row(board, col)
+                drop_piece(board, row, col, AI_PIECE)
+        
+                if winning_move(board, AI_PIECE):
+                    label = myfont.render("Player 2 wins!!", 1, YELLOW)
+                    screen.blit(label, (40, 10))
+                    game_over = True
+        
+                print_board(board)
+                draw_board(board)
+        
+                turn += 1
+                turn = turn % 2
+        
+        if game_over:
+            pygame.time.wait(300)
+
+# ----------------------------------------------------------------------------------------------------------------------
+# player vs NegaMax
+
+
+def player_vs_negamax(Diff):
+    turn = random.randint(PLAYER, AI)
+    game_over=False
+    if(Diff=="Easy"):
+        Difficulty=2
+    elif(Diff=="Medium"):
+        Difficulty=3
+    else:
+        Difficulty=5
+                
+    while not game_over:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                sys.exit()
+            if event.type == pygame.MOUSEMOTION:
+                pygame.draw.rect(screen, BLACK, (0, 0, width, SQUARESIZE))
+                posx=event.pos[0]
+                if turn == PLAYER:
+                    pygame.draw.circle(screen, RED, (posx, int(SQUARESIZE / 2)), RADIUS)
+    
+            pygame.display.update()
+    
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                pygame.draw.rect(screen, BLACK, (0, 0, width, SQUARESIZE))
+
+                if turn == PLAYER:
+                    posx = event.pos[0]
+                    col = int(math.floor(posx / SQUARESIZE))
+    
+                    if is_valid_location(board, col):
+                        row = get_next_open_row(board, col)
+                        drop_piece(board, row, col, PLAYER_PIECE)
+    
+                        if winning_move(board, PLAYER_PIECE):
+                            label = myfont.render("Player 1 wins!!", 1, RED)
+                            screen.blit(label, (40, 10))
+                            game_over = True
+    
+                        turn += 1
+                        turn = turn % 2
+    
+                        print_board(board)
+                        draw_board(board)
+    
+        if turn == AI and not game_over:
+
+            # move_start_time=time.time()
+            col, minimax_score = negamax(board, Difficulty)
             # elapsed_time = time.time() - move_start_time
 
         
@@ -655,6 +765,7 @@ def minmax_vs_minmaxap(diff1,diff2):
                 col, minimax_score = minimax_ap(board, 3, -math.inf, math.inf, False)
             elif diff2 == "Hard":
                 col, minimax_score = minimax_ap(board, 5, -math.inf, math.inf, False)
+            # elapsed_time = time.time() - move_start_time
                     
         if is_valid_location(board, col):
             pygame.time.wait(500)
@@ -711,6 +822,7 @@ def player_vs_minmax_Alpha_pruning_call():
     
     start_button = tk.Button(game_options_window, text="Start Game",command=lambda: playeralphapruning(difficulty_var.get()))
     start_button.pack()
+    
 
 
 
@@ -829,6 +941,24 @@ def minmax_vs_minmaxap_call():
     start_button.pack()
 
 
+def playerVsNegaMax_call():
+    game_options_window = tk.Toplevel(window)
+    game_options_window.title("Game Options")
+    difficulty_label = tk.Label(game_options_window, text="Ai Difficulty:")
+    difficulty_label.pack()
+
+    difficulty_var = tk.StringVar(value="Easy")
+    difficulty_option1 = tk.Radiobutton(game_options_window, text="Easy", variable=difficulty_var, value="Easy")
+    difficulty_option2 = tk.Radiobutton(game_options_window, text="Medium", variable=difficulty_var, value="Medium")
+    difficulty_option3 = tk.Radiobutton(game_options_window, text="Hard", variable=difficulty_var, value="Hard")
+    difficulty_option1.pack()
+    difficulty_option2.pack()
+    difficulty_option3.pack()
+    # Start button
+    start_button = tk.Button(game_options_window, text="Start Game",command=lambda: player_vs_negamax(difficulty_var.get()))
+    start_button.pack()
+
+
 
 
 
@@ -848,6 +978,8 @@ button_style = {
     "height": 2
 }
 
+#Home Button
+
 ai_vs_ai_button = tk.Button(window, text="player vs minmax_AP", command=player_vs_minmax_Alpha_pruning_call , **button_style)
 ai_vs_ai_button.pack()
 
@@ -864,6 +996,9 @@ player_vs_player_button = tk.Button(window, text="minmax_AP vs minmax_AP", comma
 player_vs_player_button.pack()
 
 player_vs_player_button = tk.Button(window, text="minmax vs minmax_AP", command=minmax_vs_minmaxap_call, **button_style)
+player_vs_player_button.pack()
+
+player_vs_player_button = tk.Button(window, text="Player vs NegaMax", command=playerVsNegaMax_call, **button_style)
 player_vs_player_button.pack()
 
 window.mainloop()
