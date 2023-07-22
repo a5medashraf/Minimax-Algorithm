@@ -1,1 +1,1 @@
-# Minmax-Algorithm
+# Minimax-Algorithm.
