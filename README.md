@@ -19,3 +19,6 @@ A Strategic Implementation for Connect Four Game AI
 
 ## User Interface: 
 
+
+<img src="https://github.com/a5medashraf/Minimax-Algorithm/assets/72763763/06c944ac-ee5d-4497-ba52-68da19fa6c9d" width="950" height="650">
+
